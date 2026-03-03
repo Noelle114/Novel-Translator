@@ -1,0 +1,23 @@
+{
+  "name": "manga-translator-new",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first Electron desktop translator for EPUB and text PDF",
+  "packageManager": "pnpm@10.30.3",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @mtn/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.8"
+  }
+}

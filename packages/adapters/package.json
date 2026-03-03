@@ -1,0 +1,29 @@
+{
+  "name": "@mtn/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mtn/domain": "workspace:*",
+    "@mtn/shared": "workspace:*",
+    "fast-xml-parser": "^4.5.2",
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^5.4.296",
+    "pdfkit": "^0.17.1"
+  },
+  "devDependencies": {
+    "@types/pdfkit": "^0.17.3"
+  }
+}
