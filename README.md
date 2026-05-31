@@ -1,4 +1,4 @@
-# Manga Translator New
+# Novel Translator New
 
 Production-grade Electron + React + TypeScript foundation for local-first EPUB/text-PDF EN->TR translation workflows.
 
