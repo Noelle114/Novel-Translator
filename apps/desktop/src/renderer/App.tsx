@@ -12,9 +12,9 @@ import { Toaster } from 'sonner'
 import { createPortal } from 'react-dom'
 import { AppShell } from './app/AppShell'
 import { useRendererViewModel } from './app/useRendererViewModel'
-import { LibraryTab } from './features/library/LibraryTab'
-import { SettingsTab } from './features/settings/SettingsTab'
-import { WorkspaceTab } from './features/workspace/WorkspaceTab'
+import { LibraryPage } from './features/library/LibraryPage'
+import { SettingsPage } from './features/settings/SettingsPage'
+import { WorkspacePage } from './features/workspace/WorkspacePage'
 
 export default function App() {
   const viewModel = useRendererViewModel()
@@ -33,12 +33,22 @@ export default function App() {
         )
       : null
 
+  const { activePage } = viewModel.shell
+
   return (
     <>
       <AppShell {...viewModel.shell}>
-        {viewModel.shell.activeTab === 'library' && <LibraryTab {...viewModel.library} />}
-        {viewModel.shell.activeTab === 'workspace' && <WorkspaceTab {...viewModel.workspace} />}
-        {viewModel.shell.activeTab === 'settings' && <SettingsTab {...viewModel.settings} />}
+        {activePage === 'library' && <LibraryPage {...viewModel.library} />}
+        {activePage === 'workspace' && (
+          <WorkspacePage
+            {...viewModel.workspace}
+            runProviderModels={viewModel.settings.runProviderModels}
+            onSetTranslationForm={(patch) =>
+              viewModel.settings.onSetTranslationForm((prev) => ({ ...prev, ...patch }))
+            }
+          />
+        )}
+        {activePage === 'settings' && <SettingsPage {...viewModel.settings} />}
 
         <AlertDialog
           open={viewModel.dialogs.projectPendingDelete !== null}

@@ -13,7 +13,9 @@ export class DeepLAdapter implements ITranslationProviderAdapter {
 
   async getModels(_apiKey: string): Promise<ModelInfo[]> {
     return [
-      { id: 'deepl-default', name: 'DeepL Default' }
+      { id: 'prefer_quality_optimized', name: 'DeepL Prefer Quality' },
+      { id: 'quality_optimized', name: 'DeepL Quality Optimized' },
+      { id: 'latency_optimized', name: 'DeepL Latency Optimized' }
     ]
   }
 
@@ -32,6 +34,10 @@ export class DeepLAdapter implements ITranslationProviderAdapter {
       source_lang: 'EN',
       target_lang: 'TR'
     })
+    const modelTypes = new Set(['latency_optimized', 'quality_optimized', 'prefer_quality_optimized'])
+    if (modelTypes.has(request.modelId)) {
+      body.set('model_type', request.modelId)
+    }
 
     const { status, json } = await fetchJsonWithTimeout(
       'https://api-free.deepl.com/v2/translate',

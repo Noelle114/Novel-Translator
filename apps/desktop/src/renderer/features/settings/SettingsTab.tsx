@@ -5,7 +5,6 @@ import type { SettingsTabProps } from '../../app/types'
 
 export function SettingsTab({
   language,
-  onFetchLatestModels,
   onSaveProvider,
   onSaveTechnicalSettings,
   onSelectTranslationProvider,
@@ -15,7 +14,6 @@ export function SettingsTab({
   onUpdateSelectedProviderDraft,
   providerCatalog,
   providerIds,
-  providerModelLoadState,
   providerSaveLoadState,
   providersCount,
   runProviderModels,
@@ -142,14 +140,6 @@ export function SettingsTab({
               <p className="text-xs font-medium text-muted-foreground">
                 {providerCatalog[selectedSettingsProvider].label} {text.modelListSuffix}
               </p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void onFetchLatestModels(selectedSettingsProvider)}
-                disabled={providerModelLoadState[selectedSettingsProvider]}
-              >
-                {providerModelLoadState[selectedSettingsProvider] ? text.fetching : text.fetchLatestModels}
-              </Button>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {selectedProviderModels.map((model) => (

@@ -9,7 +9,8 @@ import {
   ErrorStateSchema,
   TranslationStateSchema,
   type ErrorState,
-  type Paragraph
+  type Paragraph,
+  type ProviderId
 } from '@mtn/shared'
 import { AppDatabase } from '@mtn/storage'
 import { CredentialService } from '../services/credential-service'
@@ -18,7 +19,7 @@ import { ProviderRegistry } from '../services/provider-registry'
 const PQueueCtor = (PQueue as unknown as { default?: typeof PQueue }).default ?? PQueue
 
 type RunConfig = {
-  providerId: 'openai' | 'gemini' | 'deepl'
+  providerId: ProviderId
   modelId: string
   mode: 'independent' | 'contextual'
   contextWindow: number

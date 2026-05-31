@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter @mtn/desktop dev",
+    "dev": "pnpm -r --filter \"./packages/**\" build && pnpm --filter @mtn/desktop dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",

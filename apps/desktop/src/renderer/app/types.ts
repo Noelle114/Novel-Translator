@@ -27,7 +27,7 @@ export type TranslationForm = {
   glossaryMergeBehavior: 'project_over_global' | 'global_over_project'
 }
 
-export type ProviderId = 'openai' | 'gemini' | 'deepl'
+export type ProviderId = 'openai' | 'gemini' | 'deepl' | 'deepseek'
 
 export type ProviderDraft = {
   model: string
@@ -43,7 +43,10 @@ export type ProviderModelInfo = {
   name: string
 }
 
-export type AppTab = 'library' | 'workspace' | 'settings'
+/** Sayfa tabanlı navigasyon — eski AppTab yerine */
+export type AppPage = 'library' | 'workspace' | 'settings'
+/** Geriye dönük uyumluluk için alias */
+export type AppTab = AppPage
 
 export type ImportFeedback = {
   type: 'success' | 'error'
@@ -132,7 +135,7 @@ export interface WorkspaceTabProps {
 
 export interface SettingsTabProps {
   language: AppLanguage
-  onFetchLatestModels: (providerId: ProviderId) => void | Promise<void>
+  onGoToLibrary: () => void
   onSaveProvider: (providerId: ProviderId) => void | Promise<void>
   onSaveTechnicalSettings: () => void | Promise<void>
   onSelectTranslationProvider: (providerId: ProviderId) => void
@@ -140,9 +143,8 @@ export interface SettingsTabProps {
   onSetSettings: Dispatch<SetStateAction<AppSettings | null>>
   onSetTranslationForm: Dispatch<SetStateAction<TranslationForm>>
   onUpdateSelectedProviderDraft: (patch: Partial<ProviderDraft>) => void
-  providerCatalog: Record<ProviderId, { label: string; defaultModel: string; modelSuggestions: string[] }>
+  providerCatalog: Record<ProviderId, { label: string; defaultModel: string; modelSuggestions: { id: string; name: string }[] }>
   providerIds: ProviderId[]
-  providerModelLoadState: Record<ProviderId, boolean>
   providerSaveLoadState: Record<ProviderId, boolean>
   providersCount: number
   runProviderModels: ProviderModelInfo[]
@@ -167,9 +169,12 @@ export interface RendererViewModel {
   library: LibraryTabProps
   settings: SettingsTabProps
   shell: {
+    activePage: AppPage
+    /** Geriye dönük uyumluluk */
     activeTab: AppTab
     appTabs: AppTab[]
     language: AppLanguage
+    onGoToPage: (page: AppPage) => void
     onSetActiveTab: Dispatch<SetStateAction<AppTab>>
     onSetLanguage: Dispatch<SetStateAction<AppLanguage>>
     onSetTheme: Dispatch<SetStateAction<AppTheme>>

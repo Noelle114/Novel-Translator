@@ -9,7 +9,7 @@ export const translations = {
       workspace: 'Çalışma Alanı',
       settings: 'Ayarlar'
     },
-    appName: 'Manga Translator',
+    appName: 'Novel Translator',
     appTitle: 'Kütüphane Odaklı Başlangıç',
     appSubtitle:
       'Ana sayfadan içe aktar, sonra çalışma alanında devam et. Teknik ayarlar Ayarlar sekmesinde kalır.',
@@ -134,6 +134,17 @@ export const translations = {
     independent: 'Bağımsız',
     projectGlossaryFirst: 'Önce proje sözlüğü',
     globalGlossaryFirst: 'Önce global sözlük',
+    glossaryPriority: 'Sözlük önceliği',
+    glossary: 'Sözlük',
+    glossaryComingSoon: 'Sözlük yönetimi yakında',
+    importDropHint: 'EPUB veya PDF dosyası sürükle ya da seç',
+    importFromSidebar: 'Sol panelden bir dosya içe aktar',
+    noParagraphsFound: 'Eşleşen paragraf bulunamadı',
+    chapterLabel: 'Bölüm',
+    statsTotal: 'Toplam',
+    statsApproved: 'Onaylı',
+    statsTranslated: 'Çevrildi',
+    statsErrors: 'Hata',
     providerSwitchHint:
       'Sağlayıcı değişince kayıtlı model, zaman aşımı, deneme ve sıcaklık otomatik yüklenir.',
 
@@ -210,7 +221,7 @@ export const translations = {
       workspace: 'Workspace',
       settings: 'Settings'
     },
-    appName: 'Manga Translator',
+    appName: 'Novel Translator',
     appTitle: 'Library-first Home',
     appSubtitle: 'Import from home, then continue in workspace. Technical settings stay in Settings.',
     languageLabel: 'Language',
@@ -332,6 +343,17 @@ export const translations = {
     independent: 'Independent',
     projectGlossaryFirst: 'Project glossary first',
     globalGlossaryFirst: 'Global glossary first',
+    glossaryPriority: 'Glossary priority',
+    glossary: 'Glossary',
+    glossaryComingSoon: 'Glossary management coming soon',
+    importDropHint: 'Drag & drop an EPUB or PDF file here, or pick one',
+    importFromSidebar: 'Import a file from the left panel',
+    noParagraphsFound: 'No matching paragraphs found',
+    chapterLabel: 'Chapter',
+    statsTotal: 'Total',
+    statsApproved: 'Approved',
+    statsTranslated: 'Translated',
+    statsErrors: 'Errors',
     providerSwitchHint: "Switching provider auto-loads that provider's saved model, timeout, retry and temperature.",
 
     toastTranslationStarted: 'Translation started',

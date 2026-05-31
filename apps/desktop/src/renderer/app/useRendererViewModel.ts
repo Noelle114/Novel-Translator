@@ -9,7 +9,7 @@ import {
 } from '@mtn/shared'
 import { localizeState, translations, type AppLanguage, type AppTheme } from '../i18n'
 import { toast } from 'sonner'
-import type { RendererViewModel } from './types'
+import type { AppPage, RendererViewModel } from './types'
 
 
 
@@ -19,7 +19,7 @@ type JobState = {
 }
 
 type TranslationForm = {
-  providerId: 'openai' | 'gemini' | 'deepl'
+  providerId: 'openai' | 'gemini' | 'deepl' | 'deepseek'
   modelId: string
   mode: 'independent' | 'contextual'
   contextWindow: number
@@ -45,8 +45,6 @@ type ProviderModelInfo = {
   name: string
 }
 
-type AppTab = 'library' | 'workspace' | 'settings'
-
 type ImportFeedback = {
   type: 'success' | 'error'
   message: string
@@ -54,7 +52,7 @@ type ImportFeedback = {
 
 const initialTranslationForm: TranslationForm = {
   providerId: 'openai',
-  modelId: 'gpt-4.1-mini',
+  modelId: 'gpt-5.4-mini',
   mode: 'contextual',
   contextWindow: 2,
   retryCount: 2,
@@ -63,27 +61,54 @@ const initialTranslationForm: TranslationForm = {
   glossaryMergeBehavior: 'project_over_global'
 }
 
-const providerIds: ProviderId[] = ['openai', 'gemini', 'deepl']
+const providerIds: ProviderId[] = ['openai', 'gemini', 'deepl', 'deepseek']
 
-const providerCatalog: Record<ProviderId, { label: string; defaultModel: string; modelSuggestions: string[] }> = {
+const providerCatalog: Record<ProviderId, { label: string; defaultModel: string; modelSuggestions: { id: string; name: string }[] }> = {
   openai: {
     label: 'OpenAI',
-    defaultModel: 'gpt-4.1-mini',
-    modelSuggestions: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini']
+    defaultModel: 'gpt-5.4-mini',
+    modelSuggestions: [
+      { id: 'gpt-5.5', name: 'GPT-5.5 (Frontier)' },
+      { id: 'gpt-5.4', name: 'GPT-5.4' },
+      { id: 'gpt-5.4-mini', name: 'GPT-5.4 Mini' },
+      { id: 'gpt-5.4-nano', name: 'GPT-5.4 Nano' },
+      { id: 'gpt-4.1', name: 'GPT-4.1' },
+      { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini' }
+    ]
   },
   gemini: {
     label: 'Gemini',
-    defaultModel: 'gemini-2.0-flash',
-    modelSuggestions: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro']
+    defaultModel: 'gemini-3.5-flash',
+    modelSuggestions: [
+      { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash' },
+      { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview' },
+      { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
+      { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite' },
+      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash-Lite' }
+    ]
   },
   deepl: {
     label: 'DeepL',
-    defaultModel: 'deepl-default',
-    modelSuggestions: ['deepl-default']
+    defaultModel: 'prefer_quality_optimized',
+    modelSuggestions: [
+      { id: 'prefer_quality_optimized', name: 'DeepL Prefer Quality' },
+      { id: 'quality_optimized', name: 'DeepL Quality Optimized' },
+      { id: 'latency_optimized', name: 'DeepL Latency Optimized' }
+    ]
+  },
+  deepseek: {
+    label: 'DeepSeek',
+    defaultModel: 'deepseek-v4-flash',
+    modelSuggestions: [
+      { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro' },
+      { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' }
+    ]
   }
 }
 
-const appTabs: AppTab[] = ['library', 'workspace', 'settings']
+const appTabs: AppPage[] = ['library', 'workspace', 'settings']
 const paragraphStateValues = ['pending', 'translating', 'translated', 'edited', 'approved', 'locked', 'skipped', 'unresolved', 'error']
 
 function createDefaultProviderDraft(providerId: ProviderId): ProviderDraft {
@@ -134,12 +159,21 @@ function buildProviderDrafts(providerList: ProviderSettings[]): Record<ProviderI
           retryCount: mappedProviders.deepl.retryCount,
           temperature: mappedProviders.deepl.temperature ?? 0.2
         }
-      : createDefaultProviderDraft('deepl')
+      : createDefaultProviderDraft('deepl'),
+    deepseek: mappedProviders.deepseek
+      ? {
+          ...createDefaultProviderDraft('deepseek'),
+          model: mappedProviders.deepseek.defaultModel,
+          timeoutMs: mappedProviders.deepseek.timeoutMs,
+          retryCount: mappedProviders.deepseek.retryCount,
+          temperature: mappedProviders.deepseek.temperature ?? 0.2
+        }
+      : createDefaultProviderDraft('deepseek')
   }
 }
 
 function getDefaultModelOptions(providerId: ProviderId): ProviderModelInfo[] {
-  return providerCatalog[providerId].modelSuggestions.map((modelId) => ({ id: modelId, name: modelId }))
+  return providerCatalog[providerId].modelSuggestions
 }
 
 function mergeModelOptions(
@@ -178,7 +212,8 @@ function buildProviderModelOptions(providerList: ProviderSettings[]): Record<Pro
   return {
     openai: mergeModelOptions('openai', getDefaultModelOptions('openai'), [mappedProviders.openai?.defaultModel ?? '']),
     gemini: mergeModelOptions('gemini', getDefaultModelOptions('gemini'), [mappedProviders.gemini?.defaultModel ?? '']),
-    deepl: mergeModelOptions('deepl', getDefaultModelOptions('deepl'), [mappedProviders.deepl?.defaultModel ?? ''])
+    deepl: mergeModelOptions('deepl', getDefaultModelOptions('deepl'), [mappedProviders.deepl?.defaultModel ?? '']),
+    deepseek: mergeModelOptions('deepseek', getDefaultModelOptions('deepseek'), [mappedProviders.deepseek?.defaultModel ?? ''])
   }
 }
 
@@ -227,7 +262,7 @@ function resolveInitialTheme(): AppTheme {
 export function useRendererViewModel(): RendererViewModel {
 
 
-  const [activeTab, setActiveTab] = useState<AppTab>('library')
+  const [activeTab, setActiveTab] = useState<AppPage>('library')
   const [language, setLanguage] = useState<AppLanguage>(() => resolveInitialLanguage())
   const [theme, setTheme] = useState<AppTheme>(() => resolveInitialTheme())
   const text = translations[language]
@@ -259,27 +294,32 @@ export function useRendererViewModel(): RendererViewModel {
   const [providerDrafts, setProviderDrafts] = useState<Record<ProviderId, ProviderDraft>>({
     openai: createDefaultProviderDraft('openai'),
     gemini: createDefaultProviderDraft('gemini'),
-    deepl: createDefaultProviderDraft('deepl')
+    deepl: createDefaultProviderDraft('deepl'),
+    deepseek: createDefaultProviderDraft('deepseek')
   })
   const [providerModelOptions, setProviderModelOptions] = useState<Record<ProviderId, ProviderModelInfo[]>>({
     openai: getDefaultModelOptions('openai'),
     gemini: getDefaultModelOptions('gemini'),
-    deepl: getDefaultModelOptions('deepl')
+    deepl: getDefaultModelOptions('deepl'),
+    deepseek: getDefaultModelOptions('deepseek')
   })
   const [providerModelLoadState, setProviderModelLoadState] = useState<Record<ProviderId, boolean>>({
     openai: false,
     gemini: false,
-    deepl: false
+    deepl: false,
+    deepseek: false
   })
   const [providerSaveLoadState, setProviderSaveLoadState] = useState<Record<ProviderId, boolean>>({
     openai: false,
     gemini: false,
-    deepl: false
+    deepl: false,
+    deepseek: false
   })
   const [providerNotice, setProviderNotice] = useState<Record<ProviderId, ImportFeedback | null>>({
     openai: null,
     gemini: null,
-    deepl: null
+    deepl: null,
+    deepseek: null
   })
 
   const [exportProfile, setExportProfile] = useState<ExportProfile>({
@@ -1067,9 +1107,11 @@ export function useRendererViewModel(): RendererViewModel {
   }
   const viewModel: RendererViewModel = {
     shell: {
+      activePage: activeTab,
       activeTab,
       appTabs,
       language,
+      onGoToPage: setActiveTab,
       onSetActiveTab: setActiveTab,
       onSetLanguage: setLanguage,
       onSetTheme: setTheme,
@@ -1153,7 +1195,7 @@ export function useRendererViewModel(): RendererViewModel {
     },
     settings: {
       language,
-      onFetchLatestModels: handleFetchLatestModels,
+      onGoToLibrary: () => setActiveTab('library' as AppPage),
       onSaveProvider: handleSaveProvider,
       onSaveTechnicalSettings: handleSaveTechnicalSettings,
       onSelectTranslationProvider: handleSelectTranslationProvider,
@@ -1163,7 +1205,6 @@ export function useRendererViewModel(): RendererViewModel {
       onUpdateSelectedProviderDraft: (patch) => updateProviderDraft(selectedSettingsProvider, patch),
       providerCatalog,
       providerIds,
-      providerModelLoadState,
       providerSaveLoadState,
       providersCount: providers.length,
       runProviderModels,

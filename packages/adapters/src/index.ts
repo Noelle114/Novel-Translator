@@ -2,6 +2,7 @@ export * from './providers/interfaces.js'
 export * from './providers/openai.js'
 export * from './providers/gemini.js'
 export * from './providers/deepl.js'
+export * from './providers/deepseek.js'
 
 export * from './parsers/interfaces.js'
 export * from './parsers/epub-parser.js'

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const ProviderIdSchema = z.enum(['openai', 'gemini', 'deepl']);
+export const ProviderIdSchema = z.enum(['openai', 'gemini', 'deepl', 'deepseek']);
 export const SourceTypeSchema = z.enum(['epub', 'pdf']);
 export const ParagraphStateSchema = z.enum([
     'pending',

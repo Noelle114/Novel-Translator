@@ -18,7 +18,8 @@ function splitPdfParagraphs(text: string): string[] {
 export class PdfTextParser implements IParser {
   async parse(projectId: string, filePath: string): Promise<ParsedDocument> {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-    const data = await fs.readFile(filePath)
+    const fileBuffer = await fs.readFile(filePath)
+    const data = new Uint8Array(fileBuffer)
     const loadingTask = pdfjs.getDocument({ data })
     const doc = await loadingTask.promise
 

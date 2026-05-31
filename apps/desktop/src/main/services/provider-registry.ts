@@ -1,5 +1,6 @@
 import {
   DeepLAdapter,
+  DeepSeekAdapter,
   GeminiAdapter,
   OpenAIAdapter,
   type ITranslationProviderAdapter
@@ -13,6 +14,7 @@ export class ProviderRegistry {
     this.adapters.set('openai', new OpenAIAdapter())
     this.adapters.set('gemini', new GeminiAdapter())
     this.adapters.set('deepl', new DeepLAdapter())
+    this.adapters.set('deepseek', new DeepSeekAdapter())
   }
 
   get(providerId: ProviderId): ITranslationProviderAdapter {

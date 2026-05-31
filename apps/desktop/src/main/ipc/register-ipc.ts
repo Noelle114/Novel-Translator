@@ -24,7 +24,7 @@ function validate(schema: any, input: unknown): any {
 }
 
 const listModelsPayloadSchema = z.object({
-  providerId: z.enum(['openai', 'gemini', 'deepl']),
+  providerId: z.enum(['openai', 'gemini', 'deepl', 'deepseek']),
   apiKey: z.string().min(1).optional()
 })
 
