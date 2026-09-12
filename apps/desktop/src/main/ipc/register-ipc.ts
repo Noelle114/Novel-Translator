@@ -1,5 +1,7 @@
 import * as electron from 'electron'
+import { readFileSync } from 'node:fs'
 import { ApiContractSchemas } from '@mtn/shared'
+import { parseGlossaryCsv } from '@mtn/domain'
 import { z } from 'zod'
 import type { TranslationJobOrchestrator } from '../jobs/job-orchestrator'
 import type { CredentialService } from '../services/credential-service'
@@ -21,6 +23,49 @@ const { BrowserWindow, dialog, ipcMain } = electron
 
 function validate(schema: any, input: unknown): any {
   return schema.parse(input)
+}
+
+function upsertGlossaryRows(
+  db: AppDatabase,
+  scope: 'global' | 'project',
+  projectId: string | undefined,
+  rows: Array<{ sourceTerm: string; targetTerm: string | null }>
+): number {
+  const existing = scope === 'global'
+    ? db.listGlobalGlossary()
+    : projectId
+      ? db.listProjectGlossary(projectId)
+      : []
+  const seen = new Set(existing.map((entry) => entry.sourceTerm.toLowerCase()))
+  const now = new Date().toISOString()
+
+  let count = 0
+  for (const row of rows) {
+    if (seen.has(row.sourceTerm.toLowerCase())) {
+      continue
+    }
+    seen.add(row.sourceTerm.toLowerCase())
+
+    const base = {
+      id: crypto.randomUUID(),
+      sourceTerm: row.sourceTerm,
+      targetTerm: row.targetTerm,
+      ruleType: 'always_translate' as const,
+      caseSensitive: false,
+      notes: null,
+      priority: 0,
+      updatedAt: now
+    }
+
+    if (scope === 'global') {
+      db.upsertGlobalGlossary(base)
+    } else if (projectId) {
+      db.upsertProjectGlossary({ ...base, projectId })
+    }
+    count += 1
+  }
+
+  return count
 }
 
 const listModelsPayloadSchema = z.object({
@@ -258,6 +303,50 @@ export function registerIpc(deps: RegisterIpcDeps): void {
   ipcMain.handle('errors:delete', async (_event, payload) => {
     const safe = validate(ApiContractSchemas['errors:delete'], payload)
     deps.db.deleteError(safe.errorId)
+    return { ok: true as const }
+  })
+
+  ipcMain.handle('glossary:list', async (_event, payload) => {
+    const safe = validate(ApiContractSchemas['glossary:list'], payload)
+    return {
+      global: deps.db.listGlobalGlossary(),
+      project: safe.projectId ? deps.db.listProjectGlossary(safe.projectId) : []
+    }
+  })
+
+  ipcMain.handle('glossary:importText', async (_event, payload) => {
+    const safe = validate(ApiContractSchemas['glossary:importText'], payload)
+    const rows = parseGlossaryCsv(safe.text)
+    const count = upsertGlossaryRows(deps.db, safe.scope, safe.projectId, rows)
+    return { count }
+  })
+
+  ipcMain.handle('glossary:importFile', async (_event, payload) => {
+    const safe = validate(ApiContractSchemas['glossary:importFile'], payload)
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'CSV', extensions: ['csv', 'txt'] }
+      ]
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { count: 0 }
+    }
+
+    const text = readFileSync(result.filePaths[0], 'utf8')
+    const rows = parseGlossaryCsv(text)
+    const count = upsertGlossaryRows(deps.db, safe.scope, safe.projectId, rows)
+    return { count }
+  })
+
+  ipcMain.handle('glossary:delete', async (_event, payload) => {
+    const safe = validate(ApiContractSchemas['glossary:delete'], payload)
+    if (safe.scope === 'global') {
+      deps.db.deleteGlobalGlossary(safe.id)
+    } else if (safe.projectId) {
+      deps.db.deleteProjectGlossary(safe.projectId, safe.id)
+    }
     return { ok: true as const }
   })
 }

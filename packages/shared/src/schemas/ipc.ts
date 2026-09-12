@@ -3,7 +3,9 @@ import {
   AppSettingsSchema,
   ErrorStateSchema,
   ExportProfileSchema,
+  GlossaryEntrySchema,
   ParagraphSchema,
+  ProjectGlossaryEntrySchema,
   ProjectMetadataSchema,
   ProviderSettingsSchema,
   SavedCredentialRefSchema,
@@ -88,6 +90,11 @@ export const ApiContractSchemas = {
   'editor:mergeParagraph': z.object({ projectId: UuidSchema, firstParagraphId: UuidSchema, secondParagraphId: UuidSchema }),
   'editor:listParagraphs': z.object({ projectId: UuidSchema, sectionId: UuidSchema.optional() }),
 
+  'glossary:list': z.object({ projectId: UuidSchema.optional() }),
+  'glossary:importText': z.object({ scope: z.enum(['global', 'project']), projectId: UuidSchema.optional(), text: z.string().min(1) }),
+  'glossary:importFile': z.object({ scope: z.enum(['global', 'project']), projectId: UuidSchema.optional() }),
+  'glossary:delete': z.object({ scope: z.enum(['global', 'project']), id: UuidSchema, projectId: UuidSchema.optional() }),
+
   'export:start': ExportStartSchema,
   'export:profiles:list': z.object({ projectId: UuidSchema.optional() }),
   'export:profiles:upsert': ExportProfileSchema,
@@ -130,6 +137,14 @@ export const ApiResponses = {
   'editor:splitParagraph': z.array(ParagraphSchema),
   'editor:mergeParagraph': ParagraphSchema,
   'editor:listParagraphs': z.array(ParagraphSchema),
+
+  'glossary:list': z.object({
+    global: z.array(GlossaryEntrySchema),
+    project: z.array(ProjectGlossaryEntrySchema)
+  }),
+  'glossary:importText': z.object({ count: z.number().int() }),
+  'glossary:importFile': z.object({ count: z.number().int() }),
+  'glossary:delete': z.object({ ok: z.literal(true) }),
 
   'export:start': z.object({ outputPath: z.string() }),
   'export:profiles:list': z.array(ExportProfileSchema),

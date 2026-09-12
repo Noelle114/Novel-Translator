@@ -524,6 +524,23 @@ export class AppDatabase {
     return safe
   }
 
+  upsertGlobalGlossary(entry: unknown): GlossaryEntry {
+    const safe = GlossaryEntrySchema.parse(entry)
+    this.db
+      .prepare(`INSERT INTO glossary_global (id, data) VALUES (?, ?)
+      ON CONFLICT(id) DO UPDATE SET data = excluded.data`)
+      .run(safe.id, toJson(safe))
+    return safe
+  }
+
+  deleteGlobalGlossary(id: string): void {
+    this.db.prepare('DELETE FROM glossary_global WHERE id = ?').run(id)
+  }
+
+  deleteProjectGlossary(projectId: string, id: string): void {
+    this.db.prepare('DELETE FROM glossary_project WHERE id = ? AND project_id = ?').run(id, projectId)
+  }
+
   listExportProfiles(projectId?: string): ExportProfile[] {
     const rows = projectId
       ? this.db.prepare('SELECT data FROM export_profiles WHERE project_id = ? OR project_id IS NULL').all(projectId)

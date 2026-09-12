@@ -69,6 +69,12 @@ const api = {
     list: (payload: unknown) => ipcRenderer.invoke('errors:list', payload),
     resolve: (payload: unknown) => ipcRenderer.invoke('errors:resolve', payload),
     delete: (payload: unknown) => ipcRenderer.invoke('errors:delete', payload)
+  },
+  glossary: {
+    list: (payload: unknown) => ipcRenderer.invoke('glossary:list', payload),
+    importText: (payload: unknown) => ipcRenderer.invoke('glossary:importText', payload),
+    importFile: (payload: unknown) => ipcRenderer.invoke('glossary:importFile', payload),
+    delete: (payload: unknown) => ipcRenderer.invoke('glossary:delete', payload)
   }
 }
 
