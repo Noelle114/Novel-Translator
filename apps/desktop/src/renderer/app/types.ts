@@ -138,6 +138,7 @@ export interface WorkspaceTabProps {
   onStateFilterChange: (value: string) => void
   onStopTranslation: () => void | Promise<void>
   onUpdateParagraph: (paragraphId: string, patch: ParagraphActionPatch) => void | Promise<void>
+  onApproveAll: () => void | Promise<void>
   paragraphStateValues: string[]
   search: string
   splitIndexes: Record<string, string>

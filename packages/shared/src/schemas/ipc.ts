@@ -86,6 +86,7 @@ export const ApiContractSchemas = {
   'translation:alternativeParagraph': z.object({ projectId: UuidSchema, paragraphId: UuidSchema, sameModel: z.boolean().default(true) }),
 
   'editor:updateParagraph': z.object({ projectId: UuidSchema, paragraphId: UuidSchema, patch: UpdateParagraphPatchSchema }),
+  'editor:approveAll': z.object({ projectId: UuidSchema }),
   'editor:splitParagraph': z.object({ projectId: UuidSchema, paragraphId: UuidSchema, splitIndex: z.number().int().min(1) }),
   'editor:mergeParagraph': z.object({ projectId: UuidSchema, firstParagraphId: UuidSchema, secondParagraphId: UuidSchema }),
   'editor:listParagraphs': z.object({ projectId: UuidSchema, sectionId: UuidSchema.optional() }),
@@ -134,6 +135,7 @@ export const ApiResponses = {
   'translation:alternativeParagraph': z.object({ ok: z.literal(true) }),
 
   'editor:updateParagraph': ParagraphSchema,
+  'editor:approveAll': z.object({ count: z.number().int() }),
   'editor:splitParagraph': z.array(ParagraphSchema),
   'editor:mergeParagraph': ParagraphSchema,
   'editor:listParagraphs': z.array(ParagraphSchema),

@@ -996,6 +996,16 @@ export function useRendererViewModel(): RendererViewModel {
     setParagraphs((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)))
   }
 
+  async function approveAll() {
+    if (!currentProjectId) {
+      return
+    }
+
+    const result = await window.api.editor.approveAll({ projectId: currentProjectId })
+    await refreshParagraphs(currentProjectId)
+    toast.message(text.approveAllDone, { description: `${result.count}` })
+  }
+
   async function splitParagraph(paragraphId: string) {
     if (!currentProjectId) {
       return
@@ -1245,6 +1255,7 @@ export function useRendererViewModel(): RendererViewModel {
       onStateFilterChange: setStateFilter,
       onStopTranslation: handleStopTranslation,
       onUpdateParagraph: updateParagraph,
+      onApproveAll: approveAll,
       paragraphStateValues,
       search,
       splitIndexes,

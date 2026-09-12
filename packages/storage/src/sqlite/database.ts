@@ -304,6 +304,47 @@ export class AppDatabase {
     return next
   }
 
+  approveAllParagraphs(projectId: string): number {
+    const paragraphs = this.listParagraphs(projectId)
+    const approvable = paragraphs.filter(
+      (paragraph) => !paragraph.isLocked && !paragraph.isSkipped && (paragraph.state === 'translated' || paragraph.state === 'edited')
+    )
+
+    this.transaction(() => {
+      for (const current of approvable) {
+        const next = ParagraphSchema.parse({
+          ...current,
+          state: 'approved',
+          revision: current.revision + 1,
+          updatedAt: nowIso()
+        })
+
+        this.db
+          .prepare(`
+            UPDATE paragraphs
+            SET state = ?, is_locked = ?, is_skipped = ?, issue_flag = ?, data = ?, updated_at = ?
+            WHERE project_id = ? AND id = ?
+          `)
+          .run(
+            next.state,
+            next.isLocked ? 1 : 0,
+            next.isSkipped ? 1 : 0,
+            next.issueFlag ? 1 : 0,
+            toJson(next),
+            next.updatedAt,
+            projectId,
+            current.id
+          )
+      }
+    })
+
+    if (approvable.length > 0) {
+      this.touchProject(projectId)
+    }
+
+    return approvable.length
+  }
+
   splitParagraph(projectId: string, paragraphId: string, splitIndex: number): [Paragraph, Paragraph] {
     const current = this.getParagraph(projectId, paragraphId)
     if (!current) {

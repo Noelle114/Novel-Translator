@@ -68,6 +68,7 @@ export function WorkspacePage({
   onStateFilterChange,
   onStopTranslation,
   onUpdateParagraph,
+  onApproveAll,
   paragraphStateValues,
   runProviderModels,
   search,
@@ -128,6 +129,7 @@ export function WorkspacePage({
           onSplitParagraph={onSplitParagraph}
           onStateFilterChange={onStateFilterChange}
           onUpdateParagraph={onUpdateParagraph}
+          onApproveAll={onApproveAll}
           paragraphStateValues={paragraphStateValues}
           search={search}
           splitIndexes={splitIndexes}

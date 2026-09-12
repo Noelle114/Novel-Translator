@@ -1,7 +1,18 @@
-import { useRef } from 'react'
-import { Search } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { CheckCheck, Search } from 'lucide-react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Input } from '../../components/ui/input'
+import { Button } from '../../components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '../../components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { ParagraphItem } from './ParagraphItem'
 import type { Paragraph } from '@mtn/shared'
@@ -16,6 +27,7 @@ interface ParagraphListProps {
   onSplitParagraph: (paragraphId: string) => void | Promise<void>
   onStateFilterChange: (value: string) => void
   onUpdateParagraph: (paragraphId: string, patch: ParagraphActionPatch) => void | Promise<void>
+  onApproveAll: () => void | Promise<void>
   paragraphStateValues: string[]
   search: string
   splitIndexes: Record<string, string>
@@ -33,6 +45,7 @@ export function ParagraphList({
   onSplitParagraph,
   onStateFilterChange,
   onUpdateParagraph,
+  onApproveAll,
   paragraphStateValues,
   search,
   splitIndexes,
@@ -42,6 +55,7 @@ export function ParagraphList({
 }: ParagraphListProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const draftsRef = useRef<Record<string, string>>({})
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
 
   const virtualizer = useVirtualizer({
     count: filteredParagraphs.length,
@@ -77,6 +91,16 @@ export function ParagraphList({
             ))}
           </SelectContent>
         </Select>
+
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => setApproveConfirmOpen(true)}
+        >
+          <CheckCheck className="h-3.5 w-3.5" />
+          {text.approveAll}
+        </Button>
 
         <span className="shrink-0 text-xs text-muted-foreground">{filteredParagraphs.length}</span>
       </div>
@@ -117,6 +141,26 @@ export function ParagraphList({
           </div>
         )}
       </div>
+
+      <AlertDialog open={approveConfirmOpen} onOpenChange={setApproveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{text.approveAllConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{text.approveAllConfirmDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{text.no}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setApproveConfirmOpen(false)
+                void onApproveAll()
+              }}
+            >
+              {text.yes}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

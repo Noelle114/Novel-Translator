@@ -252,6 +252,12 @@ export function registerIpc(deps: RegisterIpcDeps): void {
     return deps.db.updateParagraph(safe.projectId, safe.paragraphId, safe.patch)
   })
 
+  ipcMain.handle('editor:approveAll', async (_event, payload) => {
+    const safe = validate(ApiContractSchemas['editor:approveAll'], payload)
+    const count = deps.db.approveAllParagraphs(safe.projectId)
+    return { count }
+  })
+
   ipcMain.handle('editor:splitParagraph', async (_event, payload) => {
     const safe = validate(ApiContractSchemas['editor:splitParagraph'], payload)
     const result = deps.db.splitParagraph(safe.projectId, safe.paragraphId, safe.splitIndex)

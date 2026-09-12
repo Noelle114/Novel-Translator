@@ -42,6 +42,7 @@ const api = {
   editor: {
     listParagraphs: (payload: unknown) => ipcRenderer.invoke('editor:listParagraphs', payload),
     updateParagraph: (payload: unknown) => ipcRenderer.invoke('editor:updateParagraph', payload),
+    approveAll: (payload: unknown) => ipcRenderer.invoke('editor:approveAll', payload),
     splitParagraph: (payload: unknown) => ipcRenderer.invoke('editor:splitParagraph', payload),
     mergeParagraph: (payload: unknown) => ipcRenderer.invoke('editor:mergeParagraph', payload)
   },
