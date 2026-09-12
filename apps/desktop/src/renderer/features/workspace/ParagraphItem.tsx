@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, ChevronUp, Flag, Lock, LockOpen, RotateCcw, Save, SkipForward } from 'lucide-react'
 import type { Paragraph } from '@mtn/shared'
 import { Button } from '../../components/ui/button'
@@ -19,10 +19,9 @@ const STATE_COLORS: Record<string, string> = {
 }
 
 type ParagraphItemProps = {
-  draftValue: string
+  draftsRef: { current: Record<string, string> }
   onMergeWithNext: (paragraphId: string) => void | Promise<void>
   onRetryParagraph: (paragraphId: string, alternative: boolean) => void | Promise<void>
-  onSetDraft: (paragraphId: string, value: string) => void
   onSetSplitIndex: (paragraphId: string, value: string) => void
   onSplitParagraph: (paragraphId: string) => void | Promise<void>
   onUpdateParagraph: (paragraphId: string, patch: ParagraphActionPatch) => void | Promise<void>
@@ -33,10 +32,9 @@ type ParagraphItemProps = {
 }
 
 export function ParagraphItem({
-  draftValue,
+  draftsRef,
   onMergeWithNext,
   onRetryParagraph,
-  onSetDraft,
   onSetSplitIndex,
   onSplitParagraph,
   onUpdateParagraph,
@@ -46,8 +44,19 @@ export function ParagraphItem({
   translateState
 }: ParagraphItemProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [draft, setDraft] = useState(() => draftsRef.current[paragraph.id] ?? paragraph.translationText)
+  const didMount = useRef(true)
 
-  const isDirty = draftValue !== paragraph.translationText
+  useEffect(() => {
+    if (didMount.current) {
+      didMount.current = false
+      return
+    }
+    setDraft(paragraph.translationText)
+    draftsRef.current[paragraph.id] = paragraph.translationText
+  }, [paragraph.translationText, paragraph.id, draftsRef])
+
+  const isDirty = draft !== paragraph.translationText
   const stateColor = STATE_COLORS[paragraph.state] ?? 'bg-muted text-muted-foreground'
   const isLocked = paragraph.isLocked
   const isSkipped = paragraph.isSkipped
@@ -72,10 +81,14 @@ export function ParagraphItem({
         {/* Çeviri textarea */}
         <Textarea
           className="mb-3 min-h-[80px] resize-y text-sm"
-          value={draftValue}
-          onChange={(e) => onSetDraft(paragraph.id, e.target.value)}
+          value={draft}
+          onChange={(e) => {
+            const value = e.target.value
+            setDraft(value)
+            draftsRef.current[paragraph.id] = value
+          }}
           disabled={isLocked || isSkipped}
-          placeholder="Çeviri..."
+          placeholder={text.translationPlaceholder}
         />
 
         {/* Eylem butonları */}
@@ -85,7 +98,7 @@ export function ParagraphItem({
             variant={isDirty ? 'default' : 'outline'}
             className="h-7 gap-1 text-xs"
             disabled={!isDirty || isLocked}
-            onClick={() => void onUpdateParagraph(paragraph.id, { translationText: draftValue, state: 'edited' })}
+            onClick={() => void onUpdateParagraph(paragraph.id, { translationText: draft, state: 'edited' })}
           >
             <Save className="h-3 w-3" />
             {text.saveEdit}

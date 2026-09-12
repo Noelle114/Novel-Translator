@@ -1,7 +1,8 @@
+import { useRef } from 'react'
 import { Search } from 'lucide-react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Input } from '../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
-import { ScrollArea } from '../../components/ui/scroll-area'
 import { ParagraphItem } from './ParagraphItem'
 import type { Paragraph } from '@mtn/shared'
 import type { AppText, ParagraphActionPatch } from '../../app/types'
@@ -11,12 +12,10 @@ interface ParagraphListProps {
   onMergeWithNext: (paragraphId: string) => void | Promise<void>
   onRetryParagraph: (paragraphId: string, alternative: boolean) => void | Promise<void>
   onSearchChange: (value: string) => void
-  onSetParagraphDraft: (paragraphId: string, value: string) => void
   onSetSplitIndex: (paragraphId: string, value: string) => void
   onSplitParagraph: (paragraphId: string) => void | Promise<void>
   onStateFilterChange: (value: string) => void
   onUpdateParagraph: (paragraphId: string, patch: ParagraphActionPatch) => void | Promise<void>
-  paragraphDrafts: Record<string, string>
   paragraphStateValues: string[]
   search: string
   splitIndexes: Record<string, string>
@@ -30,12 +29,10 @@ export function ParagraphList({
   onMergeWithNext,
   onRetryParagraph,
   onSearchChange,
-  onSetParagraphDraft,
   onSetSplitIndex,
   onSplitParagraph,
   onStateFilterChange,
   onUpdateParagraph,
-  paragraphDrafts,
   paragraphStateValues,
   search,
   splitIndexes,
@@ -43,6 +40,16 @@ export function ParagraphList({
   text,
   translateState
 }: ParagraphListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const draftsRef = useRef<Record<string, string>>({})
+
+  const virtualizer = useVirtualizer({
+    count: filteredParagraphs.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 200,
+    overscan: 10
+  })
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Filtre çubuğu */}
@@ -74,33 +81,42 @@ export function ParagraphList({
         <span className="shrink-0 text-xs text-muted-foreground">{filteredParagraphs.length}</span>
       </div>
 
-      {/* Paragraf listesi */}
-      <ScrollArea className="flex-1">
-        <div className="space-y-3 p-4">
-          {filteredParagraphs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-              <p className="text-sm text-muted-foreground">{text.noParagraphsFound}</p>
-            </div>
-          ) : (
-            filteredParagraphs.map((paragraph) => (
-              <ParagraphItem
-                key={paragraph.id}
-                paragraph={paragraph}
-                draftValue={paragraphDrafts[paragraph.id] ?? paragraph.translationText}
-                splitIndexValue={splitIndexes[paragraph.id] ?? ''}
-                onMergeWithNext={onMergeWithNext}
-                onRetryParagraph={onRetryParagraph}
-                onSetDraft={onSetParagraphDraft}
-                onSetSplitIndex={onSetSplitIndex}
-                onSplitParagraph={onSplitParagraph}
-                onUpdateParagraph={onUpdateParagraph}
-                text={text}
-                translateState={translateState}
-              />
-            ))
-          )}
-        </div>
-      </ScrollArea>
+      {/* Paragraf listesi (sanal) */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {filteredParagraphs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+            <p className="text-sm text-muted-foreground">{text.noParagraphsFound}</p>
+          </div>
+        ) : (
+          <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const paragraph = filteredParagraphs[virtualItem.index]
+              return (
+                <div
+                  key={paragraph.id}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  className="absolute left-0 top-0 w-full px-4 py-1.5"
+                  style={{ transform: `translateY(${virtualItem.start}px)` }}
+                >
+                  <ParagraphItem
+                    paragraph={paragraph}
+                    draftsRef={draftsRef}
+                    splitIndexValue={splitIndexes[paragraph.id] ?? ''}
+                    onMergeWithNext={onMergeWithNext}
+                    onRetryParagraph={onRetryParagraph}
+                    onSetSplitIndex={onSetSplitIndex}
+                    onSplitParagraph={onSplitParagraph}
+                    onUpdateParagraph={onUpdateParagraph}
+                    text={text}
+                    translateState={translateState}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

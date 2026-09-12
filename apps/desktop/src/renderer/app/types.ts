@@ -3,6 +3,7 @@ import type {
   AppSettings,
   ErrorState,
   ExportProfile,
+  GlossaryEntry,
   Paragraph,
   ProjectMetadata,
   ProviderSettings
@@ -51,6 +52,21 @@ export type AppTab = AppPage
 export type ImportFeedback = {
   type: 'success' | 'error'
   message: string
+}
+
+export type GlossaryScope = 'global' | 'project'
+
+export interface GlossaryPanelProps {
+  scope: GlossaryScope
+  onScopeChange: (scope: GlossaryScope) => void
+  entries: GlossaryEntry[]
+  importText: string
+  onImportTextChange: (value: string) => void
+  onImportText: () => void | Promise<void>
+  onImportFile: () => void | Promise<void>
+  onDelete: (id: string) => void | Promise<void>
+  busy: boolean
+  notice: ImportFeedback | null
 }
 
 export interface CollapsibleSectionProps {
@@ -116,14 +132,12 @@ export interface WorkspaceTabProps {
   onRetryParagraph: (paragraphId: string, alternative: boolean) => void | Promise<void>
   onSearchChange: (value: string) => void
   onSetExportProfile: Dispatch<SetStateAction<ExportProfile>>
-  onSetParagraphDraft: (paragraphId: string, value: string) => void
   onSetSplitIndex: (paragraphId: string, value: string) => void
   onSplitParagraph: (paragraphId: string) => void | Promise<void>
   onStartTranslation: () => void | Promise<void>
   onStateFilterChange: (value: string) => void
   onStopTranslation: () => void | Promise<void>
   onUpdateParagraph: (paragraphId: string, patch: ParagraphActionPatch) => void | Promise<void>
-  paragraphDrafts: Record<string, string>
   paragraphStateValues: string[]
   search: string
   splitIndexes: Record<string, string>
@@ -131,6 +145,7 @@ export interface WorkspaceTabProps {
   text: AppText
   translateState: (state: string) => string
   translationForm: TranslationForm
+  glossary: GlossaryPanelProps
 }
 
 export interface SettingsTabProps {

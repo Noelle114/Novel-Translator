@@ -3,7 +3,9 @@ import {
   type AppSettings,
   type ErrorState,
   type ExportProfile,
+  type GlossaryEntry,
   type Paragraph,
+  type ProjectGlossaryEntry,
   type ProjectMetadata,
   type ProviderSettings
 } from '@mtn/shared'
@@ -56,7 +58,7 @@ const initialTranslationForm: TranslationForm = {
   mode: 'contextual',
   contextWindow: 2,
   retryCount: 2,
-  timeoutMs: 30000,
+  timeoutMs: 120000,
   temperature: 0.2,
   glossaryMergeBehavior: 'project_over_global'
 }
@@ -114,7 +116,7 @@ const paragraphStateValues = ['pending', 'translating', 'translated', 'edited', 
 function createDefaultProviderDraft(providerId: ProviderId): ProviderDraft {
   return {
     model: providerCatalog[providerId].defaultModel,
-    timeoutMs: 30000,
+    timeoutMs: 120000,
     retryCount: 2,
     temperature: 0.2,
     credentialLabel: 'Default',
@@ -245,9 +247,9 @@ function extractFilePath(file: File): string | null {
 function resolveInitialLanguage(): AppLanguage {
   try {
     const stored = window.localStorage.getItem('mtn.language')
-    return stored === 'en' || stored === 'tr' ? stored : 'tr'
+    return stored === 'en' || stored === 'tr' || stored === 'zh' ? stored : 'zh'
   } catch {
-    return 'tr'
+    return 'zh'
   }
 }
 
@@ -272,10 +274,16 @@ export function useRendererViewModel(): RendererViewModel {
   const [projects, setProjects] = useState<ProjectMetadata[]>([])
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [paragraphs, setParagraphs] = useState<Paragraph[]>([])
-  const [paragraphDrafts, setParagraphDrafts] = useState<Record<string, string>>({})
   const [jobState, setJobState] = useState<JobState>({ state: 'idle', progress: 0 })
   const [errors, setErrors] = useState<ErrorState[]>([])
   const [translationForm, setTranslationForm] = useState<TranslationForm>(initialTranslationForm)
+
+  const [globalGlossary, setGlobalGlossary] = useState<GlossaryEntry[]>([])
+  const [projectGlossary, setProjectGlossary] = useState<ProjectGlossaryEntry[]>([])
+  const [glossaryScope, setGlossaryScope] = useState<'global' | 'project'>('project')
+  const [glossaryImportText, setGlossaryImportText] = useState('')
+  const [glossaryBusy, setGlossaryBusy] = useState(false)
+  const [glossaryNotice, setGlossaryNotice] = useState<ImportFeedback | null>(null)
 
   const [importPath, setImportPath] = useState('')
   const [importName, setImportName] = useState('')
@@ -475,6 +483,8 @@ export function useRendererViewModel(): RendererViewModel {
         nextSettings?.technicalDefaults.glossaryMergeBehavior ?? prev.glossaryMergeBehavior
     }))
 
+    await loadGlossary()
+
     if (nextSettings?.activeProjectId) {
       await openProject(nextSettings.activeProjectId)
     }
@@ -486,7 +496,6 @@ export function useRendererViewModel(): RendererViewModel {
     setExportDestinationPath('')
     setIsExportPanelOpen(false)
     setParagraphs(opened.paragraphs)
-    setParagraphDrafts(Object.fromEntries(opened.paragraphs.map((entry: Paragraph) => [entry.id, entry.translationText])))
     const [state, projectErrors] = await Promise.all([
       window.api.jobs.getState({ projectId }),
       window.api.errors.list({ projectId })
@@ -495,6 +504,7 @@ export function useRendererViewModel(): RendererViewModel {
     jobStateRef.current = state
     setJobState(state)
     setErrors(projectErrors)
+    await loadGlossary(projectId)
   }
 
   async function openProjectFromLibrary(projectId: string) {
@@ -511,7 +521,6 @@ export function useRendererViewModel(): RendererViewModel {
       if (currentProjectId === project.id) {
         setCurrentProjectId(null)
         setParagraphs([])
-        setParagraphDrafts({})
         setErrors([])
         setJobState({ state: 'idle', progress: 0 })
         setActiveTab('library')
@@ -535,7 +544,6 @@ export function useRendererViewModel(): RendererViewModel {
   async function refreshParagraphs(projectId: string) {
     const nextParagraphs = await window.api.editor.listParagraphs({ projectId })
     setParagraphs(nextParagraphs)
-    setParagraphDrafts(Object.fromEntries(nextParagraphs.map((entry: Paragraph) => [entry.id, entry.translationText])))
   }
 
   function applyImportPath(rawPath: string): boolean {
@@ -663,20 +671,14 @@ export function useRendererViewModel(): RendererViewModel {
         ...prev,
         [providerId]: {
           type: 'success',
-          message:
-            language === 'tr'
-              ? `${providerCatalog[providerId].label} icin ${merged.length} model alindi.`
-              : `Fetched ${merged.length} models from ${providerCatalog[providerId].label}.`
+          message: text.fetchedModels
+            .replace('{label}', providerCatalog[providerId].label)
+            .replace('{count}', String(merged.length))
         }
       }))
-      toast.success(
-        language === 'tr'
-          ? `${providerCatalog[providerId].label} modelleri guncellendi`
-          : `${providerCatalog[providerId].label} models updated`,
-        {
-          description: language === 'tr' ? `${merged.length} model yuklendi` : `${merged.length} models loaded`
-        }
-      )
+      toast.success(text.modelsUpdated.replace('{label}', providerCatalog[providerId].label), {
+        description: text.modelsLoaded.replace('{count}', String(merged.length))
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : text.feedbackFetchModelsFailed
       setProviderNotice((prev) => ({
@@ -686,6 +688,72 @@ export function useRendererViewModel(): RendererViewModel {
       toast.error(text.toastModelFetchFailed, { description: message })
     } finally {
       setProviderModelLoadState((prev) => ({ ...prev, [providerId]: false }))
+    }
+  }
+
+  async function loadGlossary(projectId?: string) {
+    const result = await window.api.glossary.list({ projectId })
+    setGlobalGlossary(result.global)
+    setProjectGlossary(result.project)
+  }
+
+  async function handleGlossaryImportText() {
+    const rawText = glossaryImportText.trim()
+    if (!rawText) {
+      return
+    }
+
+    setGlossaryBusy(true)
+    setGlossaryNotice(null)
+    try {
+      const projectId = glossaryScope === 'project' ? currentProjectId ?? undefined : undefined
+      const { count } = await window.api.glossary.importText({ scope: glossaryScope, projectId, text: rawText })
+      if (count > 0) {
+        toast.success(text.glossaryImported.replace('{count}', String(count)))
+      }
+      setGlossaryImportText('')
+      await loadGlossary(currentProjectId ?? undefined)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : text.glossaryImportFailed
+      setGlossaryNotice({ type: 'error', message })
+      toast.error(text.glossaryImportFailed, { description: message })
+    } finally {
+      setGlossaryBusy(false)
+    }
+  }
+
+  async function handleGlossaryImportFile() {
+    setGlossaryBusy(true)
+    setGlossaryNotice(null)
+    try {
+      const projectId = glossaryScope === 'project' ? currentProjectId ?? undefined : undefined
+      const { count } = await window.api.glossary.importFile({ scope: glossaryScope, projectId })
+      if (count > 0) {
+        toast.success(text.glossaryImported.replace('{count}', String(count)))
+        await loadGlossary(currentProjectId ?? undefined)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : text.glossaryImportFailed
+      setGlossaryNotice({ type: 'error', message })
+      toast.error(text.glossaryImportFailed, { description: message })
+    } finally {
+      setGlossaryBusy(false)
+    }
+  }
+
+  async function handleGlossaryDelete(id: string) {
+    setGlossaryBusy(true)
+    setGlossaryNotice(null)
+    try {
+      const projectId = glossaryScope === 'project' ? currentProjectId ?? undefined : undefined
+      await window.api.glossary.delete({ scope: glossaryScope, id, projectId })
+      await loadGlossary(currentProjectId ?? undefined)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : text.glossaryImportFailed
+      setGlossaryNotice({ type: 'error', message })
+      toast.error(text.glossaryImportFailed, { description: message })
+    } finally {
+      setGlossaryBusy(false)
     }
   }
 
@@ -780,7 +848,7 @@ export function useRendererViewModel(): RendererViewModel {
           message: enteredApiKey.length > 0 ? text.feedbackSaveAndKey : text.feedbackSettingsSaved
         }
       }))
-      toast.success(`${providerCatalog[providerId].label} ${language === 'tr' ? 'kaydedildi' : 'saved'}`, {
+      toast.success(text.providerSaved.replace('{label}', providerCatalog[providerId].label), {
         description: enteredApiKey.length > 0 ? text.feedbackSettingsAndKeyStored : text.feedbackSettingsStored
       })
     } catch (error) {
@@ -926,7 +994,6 @@ export function useRendererViewModel(): RendererViewModel {
     })
 
     setParagraphs((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)))
-    setParagraphDrafts((prev) => ({ ...prev, [paragraphId]: updated.translationText }))
   }
 
   async function splitParagraph(paragraphId: string) {
@@ -1167,12 +1234,6 @@ export function useRendererViewModel(): RendererViewModel {
       onRetryParagraph: runRetry,
       onSearchChange: setSearch,
       onSetExportProfile: setExportProfile,
-      onSetParagraphDraft: (paragraphId, value) => {
-        setParagraphDrafts((prev) => ({
-          ...prev,
-          [paragraphId]: value
-        }))
-      },
       onSetSplitIndex: (paragraphId, value) => {
         setSplitIndexes((prev) => ({
           ...prev,
@@ -1184,14 +1245,25 @@ export function useRendererViewModel(): RendererViewModel {
       onStateFilterChange: setStateFilter,
       onStopTranslation: handleStopTranslation,
       onUpdateParagraph: updateParagraph,
-      paragraphDrafts,
       paragraphStateValues,
       search,
       splitIndexes,
       stateFilter,
       text,
       translateState,
-      translationForm
+      translationForm,
+      glossary: {
+        scope: glossaryScope,
+        onScopeChange: setGlossaryScope,
+        entries: glossaryScope === 'global' ? globalGlossary : projectGlossary,
+        importText: glossaryImportText,
+        onImportTextChange: setGlossaryImportText,
+        onImportText: handleGlossaryImportText,
+        onImportFile: handleGlossaryImportFile,
+        onDelete: handleGlossaryDelete,
+        busy: glossaryBusy,
+        notice: glossaryNotice
+      }
     },
     settings: {
       language,

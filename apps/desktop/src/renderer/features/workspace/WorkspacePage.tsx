@@ -45,6 +45,7 @@ export function WorkspacePage({
   exportDestinationPath,
   exportProfile,
   filteredParagraphs,
+  glossary,
   isExporting,
   isRunActionBusy,
   isRunTranslating,
@@ -61,14 +62,12 @@ export function WorkspacePage({
   onRetryParagraph,
   onSearchChange,
   onSetExportProfile,
-  onSetParagraphDraft,
   onSetSplitIndex,
   onSplitParagraph,
   onStartTranslation,
   onStateFilterChange,
   onStopTranslation,
   onUpdateParagraph,
-  paragraphDrafts,
   paragraphStateValues,
   runProviderModels,
   search,
@@ -125,12 +124,10 @@ export function WorkspacePage({
           onMergeWithNext={onMergeWithNext}
           onRetryParagraph={onRetryParagraph}
           onSearchChange={onSearchChange}
-          onSetParagraphDraft={onSetParagraphDraft}
           onSetSplitIndex={onSetSplitIndex}
           onSplitParagraph={onSplitParagraph}
           onStateFilterChange={onStateFilterChange}
           onUpdateParagraph={onUpdateParagraph}
-          paragraphDrafts={paragraphDrafts}
           paragraphStateValues={paragraphStateValues}
           search={search}
           splitIndexes={splitIndexes}
@@ -154,7 +151,7 @@ export function WorkspacePage({
             </PanelSection>
 
             <PanelSection title={text.glossary}>
-              <GlossaryPanel text={text} />
+              <GlossaryPanel text={text} {...glossary} />
             </PanelSection>
 
             <PanelSection title={text.export}>
