@@ -25,7 +25,7 @@ export function AppHeader({ activePage, language, onGoToSettings, onGoToLibrary,
         onClick={onGoToLibrary}
       >
         <BookOpen className="h-4 w-4 text-primary" />
-        <span>Novel Translator</span>
+        <span>{text.appName}</span>
       </button>
 
       {/* Sağ: Dil + Tema Toggle + Ayarlar */}
@@ -35,10 +35,10 @@ export function AppHeader({ activePage, language, onGoToSettings, onGoToLibrary,
           variant="ghost"
           size="sm"
           className="h-8 px-2 text-xs font-semibold"
-          onClick={() => onSetLanguage(language === 'tr' ? 'en' : 'tr')}
+          onClick={() => onSetLanguage(language === 'tr' ? 'en' : language === 'en' ? 'zh' : 'tr')}
           title={text.languageLabel}
         >
-          {language === 'tr' ? 'EN' : 'TR'}
+          {language === 'tr' ? 'TR' : language === 'en' ? 'EN' : '中文'}
         </Button>
 
         <Button

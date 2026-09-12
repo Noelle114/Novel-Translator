@@ -35,7 +35,7 @@ const stateColor: Record<string, string> = {
   ready: 'text-muted-foreground'
 }
 
-const PROVIDER_LABELS: Record<string, string> = { openai: 'OpenAI', gemini: 'Gemini', deepl: 'DeepL' }
+const PROVIDER_LABELS: Record<string, string> = { openai: 'OpenAI', gemini: 'Gemini', deepl: 'DeepL', deepseek: 'DeepSeek' }
 
 export function TranslationControlBar({
   canPauseRun,
@@ -69,7 +69,7 @@ export function TranslationControlBar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {(['openai', 'gemini', 'deepl'] as const).map((id) => (
+            {(['openai', 'gemini', 'deepl', 'deepseek'] as const).map((id) => (
               <SelectItem key={id} value={id} className="text-xs">
                 {PROVIDER_LABELS[id]}
               </SelectItem>

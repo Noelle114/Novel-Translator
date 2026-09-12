@@ -7,3 +7,6 @@ release
 *.log
 coverage
 pnpm-lock.yaml
+.claude/
+.npmrc
+start.bat

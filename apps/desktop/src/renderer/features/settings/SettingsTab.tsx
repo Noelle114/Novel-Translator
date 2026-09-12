@@ -259,9 +259,7 @@ export function SettingsTab({
             >
               {providerSaveLoadState[selectedSettingsProvider]
                 ? text.saving
-                : `${language === 'tr' ? 'Kaydet' : 'Save'} ${providerCatalog[selectedSettingsProvider].label} ${
-                    language === 'tr' ? 'Ayarlarini' : 'Settings'
-                  }`}
+                : text.saveProviderSettings.replace('{label}', providerCatalog[selectedSettingsProvider].label)}
             </Button>
             <p className="text-xs text-muted-foreground">
               {text.configured}: {selectedProviderSavedConfig ? text.yes : text.no} | {text.totalConfiguredProviders}:{' '}

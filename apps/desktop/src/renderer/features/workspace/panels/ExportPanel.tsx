@@ -31,7 +31,7 @@ export function ExportPanel({
 
       {/* Format seçici */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Format</label>
+        <label className="text-xs text-muted-foreground">{text.format}</label>
         <Select
           value={exportProfile.outputFormat}
           onValueChange={(v) => onSetExportProfile((prev) => ({ ...prev, outputFormat: v as 'epub' | 'pdf' }))}
@@ -48,7 +48,7 @@ export function ExportPanel({
 
       {/* Layout seçici */}
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Layout</label>
+        <label className="text-xs text-muted-foreground">{text.layout}</label>
         <Select
           value={exportProfile.layout}
           onValueChange={(v) => onSetExportProfile((prev) => ({ ...prev, layout: v as ExportProfile['layout'] }))}
