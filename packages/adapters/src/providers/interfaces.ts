@@ -10,7 +10,6 @@ export type TranslationRequest = {
   providerId: ProviderId
   modelId: string
   sourceText: string
-  sourceLanguage: string
   targetLanguage: string
   contextParagraphs: string[]
   glossaryLines: string[]
@@ -62,6 +61,14 @@ export async function fetchJsonWithTimeout(
     }
 
     return { status: response.status, json: parsed }
+  } catch (error) {
+    if (error instanceof Error && (error.name === 'AbortError' || /abort/i.test(error.message))) {
+      throw Object.assign(new Error(`Request timed out after ${timeoutMs}ms`), {
+        status: 408,
+        code: 'ETIMEDOUT'
+      })
+    }
+    throw error
   } finally {
     clearTimeout(timeout)
   }

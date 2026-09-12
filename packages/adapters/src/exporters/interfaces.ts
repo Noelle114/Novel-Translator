@@ -6,6 +6,7 @@ export type ExportInput = {
   paragraphs: Paragraph[]
   profile: ExportProfile
   outputPath: string
+  targetLanguage: string
 }
 
 export interface IExporter {

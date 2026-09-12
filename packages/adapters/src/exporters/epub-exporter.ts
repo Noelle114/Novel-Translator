@@ -23,7 +23,7 @@ export class EpubExporter implements IExporter {
       .join('\n')
 
     zip.file('OEBPS/chapter1.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="tr">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${input.targetLanguage}">
   <head>
     <title>${escapeXml(input.sourceMetadata.title)}</title>
     <style>
@@ -70,7 +70,7 @@ export class EpubExporter implements IExporter {
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="bookid">${input.project.id}</dc:identifier>
     <dc:title>${escapeXml(input.sourceMetadata.title)}</dc:title>
-    <dc:language>tr</dc:language>
+    <dc:language>${input.targetLanguage}</dc:language>
     ${input.sourceMetadata.author ? `<dc:creator>${escapeXml(input.sourceMetadata.author)}</dc:creator>` : ''}
   </metadata>
   <manifest>

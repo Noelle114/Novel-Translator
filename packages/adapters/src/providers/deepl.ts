@@ -8,6 +8,12 @@ import {
   fetchJsonWithTimeout
 } from './interfaces.js'
 
+const DEEPL_TARGET_CODES: Record<string, string> = {
+  Chinese: 'ZH',
+  English: 'EN',
+  Turkish: 'TR'
+}
+
 export class DeepLAdapter implements ITranslationProviderAdapter {
   readonly id = 'deepl' as const
 
@@ -31,8 +37,7 @@ export class DeepLAdapter implements ITranslationProviderAdapter {
     const text = `${context}${glossary}${request.sourceText}`
     const body = new URLSearchParams({
       text,
-      source_lang: 'EN',
-      target_lang: 'TR'
+      target_lang: DEEPL_TARGET_CODES[request.targetLanguage] ?? 'ZH'
     })
     const modelTypes = new Set(['latency_optimized', 'quality_optimized', 'prefer_quality_optimized'])
     if (modelTypes.has(request.modelId)) {

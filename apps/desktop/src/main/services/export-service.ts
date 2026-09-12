@@ -55,6 +55,7 @@ export class ExportService {
     const project = this.mustGetProject(projectId)
     const sourceMetadata = this.mustGetSourceMetadata(projectId)
     const paragraphs = this.db.listParagraphs(projectId)
+    const targetLanguage = this.db.getAppSettings().technicalDefaults.targetLanguage
 
     let profile = this.db.getExportProfile(exportProfileId)
     if (!profile) {
@@ -76,7 +77,8 @@ export class ExportService {
       sourceMetadata,
       paragraphs,
       profile,
-      outputPath
+      outputPath,
+      targetLanguage
     })
   }
 

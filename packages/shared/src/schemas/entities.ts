@@ -18,10 +18,11 @@ export const TechnicalSettingsSchema = z.object({
   contextEnabled: z.boolean().default(true),
   contextWindow: z.number().int().min(0).max(3).default(2),
   retryCount: z.number().int().min(0).max(10).default(2),
-  timeoutMs: z.number().int().min(500).max(180000).default(30000),
+  timeoutMs: z.number().int().min(500).max(180000).default(120000),
   fallbackOrder: z.array(ProviderIdSchema).default(['openai', 'gemini', 'deepl']),
   temperature: z.number().min(0).max(2).optional(),
-  glossaryMergeBehavior: z.enum(['project_over_global', 'global_over_project']).default('project_over_global')
+  glossaryMergeBehavior: z.enum(['project_over_global', 'global_over_project']).default('project_over_global'),
+  targetLanguage: z.enum(['zh', 'en', 'tr']).default('zh')
 })
 
 export const AppSettingsSchema = z.object({

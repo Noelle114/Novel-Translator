@@ -10,13 +10,16 @@ import {
   TranslationStateSchema,
   type ErrorState,
   type Paragraph,
-  type ProviderId
+  type ProviderId,
+  targetLanguageName
 } from '@mtn/shared'
 import { AppDatabase } from '@mtn/storage'
 import { CredentialService } from '../services/credential-service'
 import { ProviderRegistry } from '../services/provider-registry'
 
 const PQueueCtor = (PQueue as unknown as { default?: typeof PQueue }).default ?? PQueue
+
+const TRANSLATION_CONCURRENCY = 32
 
 type RunConfig = {
   providerId: ProviderId
@@ -102,7 +105,7 @@ export class TranslationJobOrchestrator extends EventEmitter {
       config,
       paused: false,
       stopped: false,
-      queue: new PQueueCtor({ concurrency: 1 })
+      queue: new PQueueCtor({ concurrency: TRANSLATION_CONCURRENCY })
     }
 
     this.emitEvent({
@@ -216,7 +219,7 @@ export class TranslationJobOrchestrator extends EventEmitter {
       mode: latest.mode,
       contextWindow: latest.contextWindow,
       retryCount: 2,
-      timeoutMs: 30000,
+      timeoutMs: 120000,
       glossaryMergeBehavior: 'project_over_global' as const
     }
 
@@ -242,32 +245,22 @@ export class TranslationJobOrchestrator extends EventEmitter {
 
     let processed = paragraphs.filter((paragraph) => ['translated', 'edited', 'approved'].includes(paragraph.state)).length
 
-    for (const paragraph of paragraphs) {
-      if (!this.activeRun || this.activeRun.runId !== run.runId) {
+    const pending = paragraphs.filter(
+      (paragraph) => !paragraph.isLocked && !paragraph.isSkipped && !['translated', 'edited', 'approved'].includes(paragraph.state)
+    )
+
+    const tasks = pending.map((paragraph) => async () => {
+      if (!this.activeRun || this.activeRun.runId !== run.runId || this.activeRun.paused || this.activeRun.stopped) {
         return
       }
 
-      if (this.activeRun.stopped) {
-        return
-      }
+      this.db.updateParagraph(run.projectId, paragraph.id, { state: 'translating' })
+      await this.translateSingleParagraph(run.projectId, paragraph.id, run.runId, run.config)
 
-      while (this.activeRun.paused) {
-        await new Promise((resolve) => setTimeout(resolve, 300))
-        if (!this.activeRun || this.activeRun.stopped) {
-          return
-        }
-      }
+      processed += 1
+      const progress = Math.min(processed / total, 1)
 
-      if (paragraph.isLocked || paragraph.isSkipped || ['translated', 'edited', 'approved'].includes(paragraph.state)) {
-        continue
-      }
-
-      await this.activeRun.queue.add(async () => {
-        this.db.updateParagraph(run.projectId, paragraph.id, { state: 'translating' })
-        await this.translateSingleParagraph(run.projectId, paragraph.id, run.runId, run.config)
-
-        processed += 1
-        const progress = Math.min(processed / total, 1)
+      if (this.activeRun && this.activeRun.runId === run.runId && !this.activeRun.paused && !this.activeRun.stopped) {
         const latest = this.db.getLatestRun(run.projectId)
         if (latest) {
           this.db.setRunState({
@@ -285,13 +278,10 @@ export class TranslationJobOrchestrator extends EventEmitter {
           state: 'translating',
           progress
         })
-      })
-
-      if (!this.activeRun || this.activeRun.paused || this.activeRun.stopped) {
-        return
       }
-    }
+    })
 
+    await run.queue.addAll(tasks)
     await run.queue.onIdle()
     if (!this.activeRun || this.activeRun.paused || this.activeRun.stopped) {
       return
@@ -326,6 +316,17 @@ export class TranslationJobOrchestrator extends EventEmitter {
     this.activeRun = null
   }
 
+  private async sleepCheckingStop(runId: string, ms: number): Promise<boolean> {
+    const deadline = Date.now() + ms
+    while (Date.now() < deadline) {
+      if (!this.activeRun || this.activeRun.runId !== runId || this.activeRun.stopped) {
+        return true
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    return false
+  }
+
   private async translateSingleParagraph(projectId: string, paragraphId: string, runId: string, config: RunConfig): Promise<void> {
     const paragraph = this.db.getParagraph(projectId, paragraphId)
     if (!paragraph) {
@@ -358,33 +359,57 @@ export class TranslationJobOrchestrator extends EventEmitter {
     const projectGlossary = this.db.listProjectGlossary(projectId)
     const mergedGlossary = mergeGlossary(globalGlossary, projectGlossary, config.glossaryMergeBehavior)
 
-    try {
-      const response = await adapter.translate({
-        providerId: config.providerId,
-        modelId: config.modelId,
-        sourceText: paragraph.sourceText,
-        sourceLanguage: 'en',
-        targetLanguage: 'tr',
-        contextParagraphs,
-        glossaryLines: glossaryToPromptLines(mergedGlossary),
-        apiKey,
-        timeoutMs: config.timeoutMs,
-        temperature: config.temperature
-      })
+    const appSettings = this.db.getAppSettings()
+    const targetLanguage = targetLanguageName(appSettings.technicalDefaults.targetLanguage)
+    const maxAttempts = Math.max(1, config.retryCount + 1)
+    let lastError: unknown = null
 
-      this.db.updateParagraph(projectId, paragraphId, {
-        translationText: response.translatedText,
-        state: 'translated',
-        providerTrace: {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await adapter.translate({
           providerId: config.providerId,
           modelId: config.modelId,
-          runId,
-          translatedAt: new Date().toISOString()
+          sourceText: paragraph.sourceText,
+          targetLanguage,
+          contextParagraphs,
+          glossaryLines: glossaryToPromptLines(mergedGlossary),
+          apiKey,
+          timeoutMs: config.timeoutMs,
+          temperature: config.temperature
+        })
+
+        this.db.updateParagraph(projectId, paragraphId, {
+          translationText: response.translatedText,
+          state: 'translated',
+          providerTrace: {
+            providerId: config.providerId,
+            modelId: config.modelId,
+            runId,
+            translatedAt: new Date().toISOString()
+          }
+        })
+        return
+      } catch (error) {
+        lastError = error
+        const normalized = adapter.normalizeError(error, config.modelId)
+        if (!normalized.recoverable || attempt >= maxAttempts - 1) {
+          break
         }
-      })
-    } catch (error) {
-      await this.pauseByError(projectId, runId, paragraph, config, error)
+
+        const baseDelay = Math.min(1000 * Math.pow(2, attempt), 30000)
+        const delay = baseDelay + Math.random() * 500
+        this.logger.info(
+          { projectId, paragraphId, attempt: attempt + 1, maxAttempts, delayMs: Math.round(delay) },
+          'Translation attempt failed; retrying'
+        )
+        const stopped = await this.sleepCheckingStop(runId, delay)
+        if (stopped) {
+          return
+        }
+      }
     }
+
+    await this.pauseByError(projectId, runId, paragraph, config, lastError)
   }
 
   private buildContextParagraphs(allParagraphs: Paragraph[], current: Paragraph, config: RunConfig): string[] {

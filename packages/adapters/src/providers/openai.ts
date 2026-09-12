@@ -37,7 +37,7 @@ export class OpenAIAdapter implements ITranslationProviderAdapter {
   async translate(request: TranslationRequest): Promise<TranslationResponse> {
     const system = [
       'You are a professional literary translator.',
-      'Translate from English to Turkish with natural and consistent novel style.',
+      `Translate to ${request.targetLanguage} with natural and consistent novel style.`,
       'Do not add explanations.'
     ]
 

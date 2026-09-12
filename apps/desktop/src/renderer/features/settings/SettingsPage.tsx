@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { ProviderCard } from './ProviderCard'
+import { TARGET_LANGUAGES } from '@mtn/shared'
 import type { SettingsTabProps } from '../../app/types'
 
 export function SettingsPage({
@@ -174,7 +175,7 @@ export function SettingsPage({
               <h2 className="text-sm font-semibold">{text.technicalDefaults}</h2>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-muted-foreground">{text.contextWindowRange}</label>
                 <Input
@@ -226,6 +227,29 @@ export function SettingsPage({
                   }
                   min={500}
                 />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">{text.targetLanguage}</label>
+                <Select
+                  value={settings.technicalDefaults.targetLanguage}
+                  onValueChange={(v) =>
+                    onSetSettings((prev) =>
+                      prev
+                        ? { ...prev, technicalDefaults: { ...prev.technicalDefaults, targetLanguage: v as 'zh' | 'en' | 'tr' } }
+                        : prev
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TARGET_LANGUAGES.map((l) => (
+                      <SelectItem key={l.code} value={l.code} className="text-xs">{l.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

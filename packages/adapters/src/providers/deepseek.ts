@@ -48,7 +48,7 @@ export class DeepSeekAdapter implements ITranslationProviderAdapter {
   async translate(request: TranslationRequest): Promise<TranslationResponse> {
     const systemLines = [
       'You are a professional literary translator.',
-      `Translate the following text from ${request.sourceLanguage} to ${request.targetLanguage} with natural, consistent novel style.`,
+      `Translate the following text to ${request.targetLanguage} with natural, consistent novel style.`,
       'Return only the translated text — no explanations or commentary.'
     ]
 
