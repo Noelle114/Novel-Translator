@@ -2,6 +2,8 @@
 
 Local-first Electron desktop app for translating EPUB and PDF novels.
 
+English | [中文](./README.zh-CN.md)
+
 ## Quick start
 
 ```bash
@@ -18,6 +20,7 @@ pnpm dev
 - Global and per-project glossaries with CSV import
 - Start / pause / resume / stop run control, parallel translation with retry and backoff
 - Paragraph editor (merge, split, edit translation)
+- Approve all translations in one click
 - Export to EPUB / PDF
 - Localized UI (Chinese / English / Turkish)
 
